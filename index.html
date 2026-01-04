@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Finance Tracker</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4CAF50">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<link rel="shortcut icon" href="ENA_Tech.png" type="image/x-icon">
+<script src="js/chart.min.js"></script>
+<script src="js/jspdf.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f2f5;
+      display: flex;
+      justify-content: center;
+      padding: 0;
+      margin: 0;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* Navbar */
+    .navbar {
+      width: 100%;
+      max-width: 500px;
+      background: #4CAF50;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .navbar .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .navbar .logo img {
+      height: 35px;
+      border-radius: 5px;
+    }
+
+    .navbar .links {
+      display: flex;
+      gap: 15px;
+    }
+
+    .navbar .links a {
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .navbar .hamburger {
+      display: none;
+      font-size: 24px;
+      cursor: pointer;
+    }
+
+    /* Side drawer */
+    .side-drawer {
+      height: 100%;
+      width: 0;
+      position: fixed;
+      top: 0;
+      right: 0;
+      background-color:#45a049;
+      color: white;
+      overflow-x: hidden;
+      transition: 0.3s;
+      padding-top: 60px;
+      z-index: 1500;
+    }
+
+    .side-drawer a {
+      display: block;
+      color: white;
+      text-decoration: none;
+      padding: 10px 30px;
+      font-size: 18px;
+    }
+
+    .side-drawer a:hover {
+      background-color: #575757;
+    }
+
+    .side-drawer .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 20px;
+      font-size: 30px;
+      cursor: pointer;
+    }
+
+    @media (max-width: 768px) {
+      .navbar .links { display: none; }
+      .navbar .hamburger { display: block; }
+    }
+
+    .container {
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      width: 100%;
+      max-width: 500px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.2);
+      margin-top: 10px;
+    }
+
+    h1, h2, h3 { text-align: center; }
+
+    .balance { margin-bottom: 20px; }
+
+    .transaction-form input,
+    .transaction-form select,
+    .transaction-form button {
+      padding: 10px;
+      margin: 5px 0;
+      width: 100%;
+      box-sizing: border-box;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    .transaction-form button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    .transaction-form button:hover {
+      background-color: #45a049;
+    }
+
+    #transaction-list li {
+      display: flex;
+      justify-content: space-between;
+      margin: 5px 0;
+      padding: 8px;
+      border-radius: 5px;
+    }
+
+    #transaction-list li.income { background-color: #d4edda; }
+    #transaction-list li.expense { background-color: #f8d7da; }
+
+    #transaction-list button {
+      background-color: red;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      padding: 2px 6px;
+    }
+
+    #transaction-list button:hover { background-color: darkred; }
+
+    #exportBtn {
+      background-color: #007bff;
+      color: white;
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    #exportBtn:hover { background-color: #0069d9; }
+#exportCSVBtn {
+   background-color: #007bff;
+      color: white;
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+}
+#exportCSVBtn:hover{
+  background-color: #0069d9;
+}
+    #language-select {
+      margin-bottom: 15px;
+      padding: 10px;
+      width: 100%;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+
+    /* Privacy Modal */
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed;
+  z-index: 2000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+  background-color: #fff;
+  margin: 10% auto;
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 500px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.modal-content h2 {
+  margin-top: 0;
+  text-align: center;
+}
+
+.modal-content p {
+  line-height: 1.5;
+}
+
+.modal .close {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.modal .close:hover {
+  color: #000;
+}
+
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <div class="navbar">
+    <div class="logo">
+      <img src="2e308efd-1b28-4c93-b03c-015e98a25d7c-removebg-preview.png" alt="Logo">
+      <span id="logo-text">FinanceTracker</span>
+    </div>
+    <div class="links" id="navbar-links">
+      <a href="index.html" data-key="home">Home</a>
+     <a href="#" data-key="privacy" onclick="openPrivacyModal(); return false;">
+  <span class="drawer-text">Privacy</span> <hr>
+</a>
+      <a href="#" data-key="howToUse" onclick="openHowToUseModal(); return false;">How to Use</a>
+      <a href="https://wa.me/923555298692" target="_blank" data-key="help">Help</a>
+    </div>
+    <div class="hamburger" onclick="openDrawer()">&#9776;</div>
+  </div>
+
+  <div id="sideDrawer" class="side-drawer">
+    <span class="close-btn" onclick="closeDrawer()">&times;</span>
+    <a href="index.html" data-key="home"><span class="drawer-text">Home</span> <hr></a>
+    <a href="#" data-key="privacy" onclick="openPrivacyModal(); return false;">
+  <span class="drawer-text">Privacy</span> <hr>
+</a>
+
+   <a href="#" data-key="howToUse" onclick="openHowToUseModal(); return false;">How to Use <hr></a>
+    <a href="https://wa.me/923555298692" target="_blank" data-key="help"><span class="drawer-text">Help</span> <hr></a>
+  </div>
+
+  <!-- Main Container -->
+  <div class="container">
+    <!-- Language Selector -->
+    <select id="language-select">
+      <option value="en" selected>English</option>
+      <option value="ur">Urdu</option>
+      <option value="hi">Hindi</option>
+      <option value="zh">Chinese</option>
+      <option value="es">Spanish</option>
+      <option value="fr">French</option>
+      <option value="de">German</option>
+    </select>
+
+    <h1 id="title">Finance Tracker</h1>
+
+    <div class="balance">
+      <h2><span id="balance-label">Balance</span>: <span id="balance">0.00</span></h2>
+      <p><span id="income-label">Income</span>: <span id="income">0.00</span> | <span id="expenses-label">Expenses</span>: <span id="expenses">0.00</span></p>
+    </div>
+
+    <div class="transaction-form">
+      <input type="text" id="description" placeholder="Description">
+      <input type="number" id="amount" placeholder="Amount">
+
+      <!-- Currency Dropdown -->
+      <select id="currency">
+        <option value="$">USD ($)</option>
+        <option value="₨" selected>PKR (₨)</option>
+        <option value="€">EUR (€)</option>
+        <option value="£">GBP (£)</option>
+        <option value="₹">INR (₹)</option>
+        <option value="¥">JPY (¥)</option>
+      </select>
+
+      <select id="type">
+        <option value="income">Income</option>
+        <option value="expense">Expense</option>
+      </select>
+      <select id="category">
+        <option value="Salary">Salary</option>
+        <option value="Food">Food</option>
+        <option value="Shopping">Shopping</option>
+        <option value="Transport">Transport</option>
+        <option value="Other">Other</option>
+      </select>
+      <input type="datetime" id="date">
+      <button id="addBtn">Add Transaction</button>
+      <!-- Sorting -->
+<select id="sortSelect">
+  <option value="date">Sort by Date</option>
+  <option value="amount">Sort by Amount</option>
+  <option value="type">Sort by Type</option>
+</select>
+
+      <input type="text" id="searchInput" placeholder="Search by description or category">
+    </div>
+
+    <h3 id="transactions-title">Transactions</h3>
+    
+
+    <ul id="transaction-list"></ul>
+
+  <button id="exportBtn">Export PDF</button>
+<button id="exportCSVBtn">Export CSV</button>
+
+    <h3 id="summary-title">Monthly Summary</h3>
+    <canvas id="summaryChart"></canvas>
+  </div>
+
+
+  <!-- Privacy Policy Modal -->
+<div id="privacyModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closePrivacyModal()">&times;</span>
+    <h2 id="privacy-title">Privacy Policy</h2>
+    <p id="privacy-text">
+      Your privacy policy content goes here. Explain how user data is stored, handled, and used.  
+      Example: "All your financial transactions are stored locally in your browser and never sent to any server."
+    </p>
+  </div>
+</div>
+<!-- How to Use Modal -->
+<div id="howToUseModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeHowToUseModal()">&times;</span>
+    <h2 id="howToUse-title">How to Use</h2>
+    <ol id="howToUse-list">
+      <li>Select your preferred language from the dropdown at the top.</li>
+      <li>Enter transaction details: description, amount, type, category, and date.</li>
+      <li>Click "Add Transaction" to save it. You can edit or delete any transaction.</li>
+      <li>Use the search box to filter transactions by description or category.</li>
+      <li>Sort transactions using the "Sort by" dropdown.</li>
+      <li>Export your transactions as PDF or CSV using the buttons below the list.</li>
+      <li>Check your monthly summary chart at the bottom for an overview.</li>
+      <li>All data is stored locally in your browser; no server is used.</li>
+    </ol>
+  </div>
+</div>
+  <button id="installBtn" style="display:none; position: fixed; bottom: 16px; right: 16px; z-index:9999; padding:10px 14px; border-radius:8px; background:#4CAF50; color:#fff; border:none;">Install App</button>
+
+  <script>
+
+function openDrawer() { document.getElementById("sideDrawer").style.width = "250px"; }
+function closeDrawer() { document.getElementById("sideDrawer").style.width = "0"; }
+
+const balanceEl = document.getElementById('balance');
+const incomeEl = document.getElementById('income');
+const expensesEl = document.getElementById('expenses');
+const transactionList = document.getElementById('transaction-list');
+const descriptionInput = document.getElementById('description');
+const amountInput = document.getElementById('amount');
+const typeInput = document.getElementById('type');
+const categoryInput = document.getElementById('category');
+const dateInput = document.getElementById('date');
+const addBtn = document.getElementById('addBtn');
+const exportBtn = document.getElementById('exportBtn');
+const exportCSVBtn = document.getElementById('exportCSVBtn');
+const summaryChartCtx = document.getElementById('summaryChart');
+const currencyInput = document.getElementById('currency');
+const languageSelect = document.getElementById('language-select');
+const sortSelect = document.getElementById('sortSelect');
+const searchInput = document.getElementById('searchInput');
+
+const navbarLinks = document.querySelectorAll('.links a');
+const drawerLinks = document.querySelectorAll('.side-drawer a .drawer-text');
+
+searchInput.addEventListener('input', updateUI);
+
+let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+let selectedCurrency = currencyInput.value;
+let editIndex = null; //  edit tracking
+
+// Language and Currency Mapping
+const languageCurrencyMap = {
+  en: '$', ur: '₨', hi: '₹', zh: '¥', es: '€', fr: '€', de: '€'
+};
+
+
+// Translations
+const translations = {
+  en:{
+    title:"Finance Tracker",
+    balance:"Balance",
+    income:"Income",
+    expenses:"Expenses",
+    description:"Description",
+    amount:"Amount",
+    datePlaceholder:"Select Month",
+    addTransaction:"Add Transaction",
+    transactions:"Transactions",
+    exportPDF:"Export PDF",
+    monthlySummary:"Monthly Summary",
+    incomeOption:"Income",
+    expenseOption:"Expense",
+    salary:"Salary",
+    food:"Food",
+    shopping:"Shopping",
+    transport:"Transport",
+    other:"Other",
+    edit: "Edit",
+    delete: "Delete",
+    noResults: "No results found",
+    invalidAlert:"Please enter valid description and amount.",
+    home:"Home",
+    privacy:"Privacy",
+    howToUse:"How to Use",
+    help:"Help",
+    sortBy: { date:"Sort by Date", amount:"Sort by Amount", type:"Sort by Type" },
+    searchPlaceholder: "Search by description or category"
+  },
+  ur:{
+    title:"مالیاتی ٹریکر",
+    balance:"بیلنس",
+    income:"آمدنی",
+    expenses:"اخراجات",
+    description:"تفصیل",
+    amount:"رقم",
+    datePlaceholder:"مہینہ منتخب کریں",
+    addTransaction:"ٹرانزیکشن شامل کریں",
+    transactions:"ٹرانزیکشنز",
+    exportPDF:"پی ڈی ایف برآمد کریں",
+    monthlySummary:"ماہانہ خلاصہ",
+    incomeOption:"آمدنی",
+    expenseOption:"اخراجات",
+    salary:"تنخواہ",
+    food:"کھانا",
+    shopping:"خریداری",
+    transport:"ٹرانسپورٹ",
+    other:"دیگر",
+    edit: "ترمیم کریں",
+    delete: "حذف کریں",
+    noResults: "کوئی نتیجہ نہیں ملا",
+    invalidAlert:"براہ مہربانی درست تفصیل اور رقم درج کریں۔",
+    home:"ہوم",
+    privacy:"پرائیویسی",
+    howToUse:"استعمال کرنے کا طریقہ",
+    help:"مدد",
+    sortBy: { date:"تاریخ کے لحاظ سے", amount:"رقم کے لحاظ سے", type:"قسم کے لحاظ سے" },
+    searchPlaceholder: "تفصیل یا زمرہ سے تلاش کریں"
+  },
+  hi:{
+    title:"फाइनेंस ट्रैकर",
+    balance:"बैलेंस",
+    income:"आय",
+    expenses:"खर्च",
+    description:"विवरण",
+    amount:"राशि",
+    datePlaceholder:"माह चुनें",
+    addTransaction:"ट्रांजैक्शन जोड़ें",
+    transactions:"लेन-देन",
+    exportPDF:"पीडीएफ निर्यात करें",
+    monthlySummary:"मासिक सारांश",
+    incomeOption:"आय",
+    expenseOption:"खर्च",
+    salary:"वेतन",
+    food:"खाना",
+    shopping:"खरीदारी",
+    transport:"यातायात",
+    other:"अन्य",
+    edit: "संपादित करें",
+    delete: "हटाएँ",
+    noResults: "कोई परिणाम नहीं मिला",
+    invalidAlert:"कृपया सही विवरण और राशि दर्ज करें।",
+    home:"होम",
+    privacy:"गोपनीयता",
+    howToUse:"कैसे उपयोग करें",
+    help:"सहायता",
+    sortBy: { date:"तारीख़ के अनुसार", amount:"राशि के अनुसार", type:"प्रकार के अनुसार" },
+    searchPlaceholder: "विवरण या श्रेणी से खोजें"
+  },
+  zh:{
+    title:"财务追踪器",
+    balance:"余额",
+    income:"收入",
+    expenses:"支出",
+    description:"描述",
+    amount:"金额",
+    datePlaceholder:"选择月份",
+    addTransaction:"添加交易",
+    transactions:"交易记录",
+    exportPDF:"导出PDF",
+    monthlySummary:"每月总结",
+    incomeOption:"收入",
+    expenseOption:"支出",
+    salary:"工资",
+    food:"食物",
+    shopping:"购物",
+    transport:"交通",
+    other:"其他",
+    edit: "编辑",
+    delete: "删除",
+    noResults: "未找到结果",
+    invalidAlert:"请输入有效的描述和金额。",
+    home:"主页",
+    privacy:"隐私",
+    howToUse:"使用方法",
+    help:"帮助",
+    sortBy: { date:"按日期排序", amount:"按金额排序", type:"按类型排序" },
+    searchPlaceholder: "按描述或分类搜索"
+  },
+  es:{
+    title:"Rastreador Financiero",
+    balance:"Balance",
+    income:"Ingresos",
+    expenses:"Gastos",
+    description:"Descripción",
+    amount:"Cantidad",
+    datePlaceholder:"Selecciona mes",
+    addTransaction:"Agregar transacción",
+    transactions:"Transacciones",
+    exportPDF:"Exportar PDF",
+    monthlySummary:"Resumen mensual",
+    incomeOption:"Ingresos",
+    expenseOption:"Gastos",
+    salary:"Salario",
+    food:"Comida",
+    shopping:"Compras",
+    transport:"Transporte",
+    other:"Otro",
+    edit: "Editar",
+    delete: "Eliminar",
+    noResults: "No se encontraron resultados",
+    invalidAlert:"Por favor ingrese una descripción y cantidad válida.",
+    home:"Inicio",
+    privacy:"Privacidad",
+    howToUse:"Cómo usar",
+    help:"Ayuda",
+    sortBy: { date:"Ordenar por fecha", amount:"Ordenar por cantidad", type:"Ordenar por tipo" },
+    searchPlaceholder: "Buscar por descripción o categoría"
+  },
+  fr:{
+    title:"Suivi Financier",
+    balance:"Solde",
+    income:"Revenu",
+    expenses:"Dépenses",
+    description:"Description",
+    amount:"Montant",
+    datePlaceholder:"Sélectionnez le mois",
+    addTransaction:"Ajouter une transaction",
+    transactions:"Transactions",
+    exportPDF:"Exporter PDF",
+    monthlySummary:"Résumé mensuel",
+    incomeOption:"Revenu",
+    expenseOption:"Dépenses",
+    salary:"Salaire",
+    food:"Nourriture",
+    shopping:"Shopping",
+    transport:"Transport",
+    other:"Autre",
+    edit: "Modifier",
+    delete: "Supprimer",
+    noResults: "Aucun résultat trouvé",
+    invalidAlert:"Veuillez entrer une description et un montant valides.",
+    home:"Accueil",
+    privacy:"Confidentialité",
+    howToUse:"Comment utiliser",
+    help:"Aide",
+    sortBy: { date:"Trier par date", amount:"Trier par montant", type:"Trier par type" },
+    searchPlaceholder: "Rechercher par description ou catégorie"
+  },
+  de:{
+    title:"Finanz-Tracker",
+    balance:"Kontostand",
+    income:"Einnahmen",
+    expenses:"Ausgaben",
+    description:"Beschreibung",
+    amount:"Betrag",
+    datePlaceholder:"Monat auswählen",
+    addTransaction:"Transaktion hinzufügen",
+    transactions:"Transaktionen",
+    exportPDF:"PDF exportieren",
+    monthlySummary:"Monatliche Übersicht",
+    incomeOption:"Einnahmen",
+    expenseOption:"Ausgaben",
+    salary:"Gehalt",
+    food:"Essen",
+    shopping:"Einkaufen",
+    transport:"Transport",
+    other:"Andere",
+    edit: "Bearbeiten",
+    delete: "Löschen",
+    noResults: "Keine Ergebnisse gefunden",
+    invalidAlert:"Bitte geben Sie eine gültige Beschreibung und einen Betrag ein.",
+    home:"Startseite",
+    privacy:"Datenschutz",
+    howToUse:"Wie man benutzt",
+    help:"Hilfe",
+    sortBy: { date:"Nach Datum sortieren", amount:"Nach Betrag sortieren", type:"Nach Typ sortieren" },
+    searchPlaceholder: "Nach Beschreibung oder Kategorie suchen"
+  }
+};
+
+// Selected language
+let selectedLanguage = languageSelect.value;
+
+// ✅ Update Language Function (no change)
+function updateLanguage(lang) {
+  selectedLanguage = lang;
+  const t = translations[lang];
+  document.getElementById('title').innerText = t.title;
+  document.getElementById('balance-label').innerText = t.balance;
+  document.getElementById('income-label').innerText = t.income;
+  document.getElementById('expenses-label').innerText = t.expenses;
+  descriptionInput.placeholder = t.description;
+  amountInput.placeholder = t.amount;
+  dateInput.placeholder = t.datePlaceholder;
+  addBtn.innerText = editIndex !== null ? "Update Transaction" : t.addTransaction;
+  exportBtn.innerText = t.exportPDF;
+  document.getElementById('transactions-title').innerText = t.transactions;
+  document.getElementById('summary-title').innerText = t.monthlySummary;
+  typeInput.options[0].text = t.incomeOption;
+  typeInput.options[1].text = t.expenseOption;
+  categoryInput.options[0].text = t.salary;
+  categoryInput.options[1].text = t.food;
+  categoryInput.options[2].text = t.shopping;
+  categoryInput.options[3].text = t.transport;
+  categoryInput.options[4].text = t.other;
+  navbarLinks.forEach(link => {
+    const key = link.dataset.key;
+    if (t[key]) link.innerText = t[key];
+  });
+  drawerLinks.forEach(link => {
+    const key = link.parentElement.dataset.key;
+    if (t[key]) link.innerText = t[key];
+  });
+  sortSelect.options[0].text = t.sortBy.date;
+  sortSelect.options[1].text = t.sortBy.amount;
+  sortSelect.options[2].text = t.sortBy.type;
+  searchInput.placeholder = t.searchPlaceholder;
+
+  if (languageCurrencyMap[lang]) {
+    currencyInput.value = languageCurrencyMap[lang];
+    selectedCurrency = currencyInput.value;
+    updateUI();
+  }
+}
+
+languageSelect.addEventListener('change', () => updateLanguage(languageSelect.value));
+currencyInput.addEventListener('change', () => { selectedCurrency = currencyInput.value; updateUI(); });
+
+// ✅ Add / Update Transaction
+function addTransaction() {
+  const t = translations[selectedLanguage];
+  const description = descriptionInput.value.trim();
+  const amount = parseFloat(amountInput.value.trim());
+  const type = typeInput.value;
+  const category = categoryInput.value;
+  const date = dateInput.value || new Date().toISOString().slice(0, 7);
+  if (description === '' || isNaN(amount)) { alert(t.invalidAlert); return; }
+
+  if (editIndex !== null) {
+    transactions[editIndex] = { description, amount, type, category, date };
+    editIndex = null;
+    addBtn.innerText = t.addTransaction;
+  } else {
+    transactions.push({ description, amount, type, category, date });
+  }
+
+  descriptionInput.value = '';
+  amountInput.value = '';
+  updateUI();
+}
+
+// ✅ Edit Transaction
+function editTransaction(index) {
+  const t = transactions[index];
+  descriptionInput.value = t.description;
+  amountInput.value = t.amount;
+  typeInput.value = t.type;
+  categoryInput.value = t.category;
+  dateInput.value = t.date;
+  addBtn.innerText = "Update Transaction";
+  editIndex = index;
+}
+
+// ✅ Delete Transaction
+function deleteTransaction(index) {
+  if (confirm('Are you sure?')) {
+    transactions.splice(index, 1);
+    updateUI();
+  }
+}
+
+// ✅ Export PDF (New Optimized Version)
+function exportPDF() {
+  if (transactions.length === 0) {
+    alert(translations[selectedLanguage].noResults || "No transactions to export!");
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  doc.setFontSize(18);
+  doc.text("Finance Tracker Report", 14, 20);
+  doc.setFontSize(12);
+  doc.text(`Date: ${new Date().toLocaleDateString()}`, 14, 30);
+  doc.text(`Total Income: ${incomeEl.textContent}`, 14, 40);
+  doc.text(`Total Expense: ${expensesEl.textContent}`, 14, 50);
+  doc.text(`Balance: ${balanceEl.textContent}`, 14, 60);
+
+  const headers = [["Description", "Amount", "Type", "Category", "Date"]];
+  const data = transactions.map(t => [
+    t.description,
+    `${selectedCurrency}${t.amount}`,
+    t.type,
+    t.category,
+    t.date
+  ]);
+
+  if (doc.autoTable) {
+    doc.autoTable({
+      startY: 70,
+      head: headers,
+      body: data,
+    });
+  } else {
+    let y = 75;
+    data.forEach(row => {
+      doc.text(row.join("  |  "), 14, y);
+      y += 8;
+    });
+  }
+
+  doc.save("Finance_Report.pdf");
+}
+
+// ✅ Export CSV (New Optimized Version)
+function exportCSV() {
+  if (transactions.length === 0) {
+    alert(translations[selectedLanguage].noResults || "No transactions to export!");
+    return;
+  }
+
+  let csvContent = "data:text/csv;charset=utf-8,";
+  csvContent += "Description,Amount,Type,Category,Date\n";
+
+  transactions.forEach(t => {
+    const row = [
+      `"${t.description}"`,
+      `"${t.amount}"`,
+      `"${t.type}"`,
+      `"${t.category}"`,
+      `"${t.date}"`
+    ].join(",");
+    csvContent += row + "\n";
+  });
+
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", "Finance_Report.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// ✅ Chart Update Function
+let summaryChart;
+function updateChart() {
+  const monthlyData = {};
+  transactions.forEach(t => {
+    const month = t.date;
+    if (!monthlyData[month]) monthlyData[month] = { income: 0, expense: 0 };
+    if (t.type === 'income') monthlyData[month].income += t.amount;
+    else monthlyData[month].expense += t.amount;
+  });
+
+  const labels = Object.keys(monthlyData).sort();
+  const incomeData = labels.map(m => monthlyData[m].income);
+  const expenseData = labels.map(m => monthlyData[m].expense);
+
+  if (summaryChart) summaryChart.destroy();
+  summaryChart = new Chart(summaryChartCtx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: translations[selectedLanguage].income, data: incomeData, backgroundColor: '#28a745' },
+        { label: translations[selectedLanguage].expenses, data: expenseData, backgroundColor: '#dc3545' }
+      ]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'top' } } }
+  });
+}
+
+// ✅ Update UI (Search + Sort)
+function updateUI() {
+  let income = 0, expenses = 0;
+  const query = searchInput.value.toLowerCase();
+  transactionList.innerHTML = '';
+  const t = translations[selectedLanguage];
+  let resultsFound = false;
+
+  let filtered = transactions.filter(tran =>
+    tran.description.toLowerCase().includes(query) ||
+    tran.category.toLowerCase().includes(query)
+  );
+
+  const sortBy = sortSelect.value;
+  filtered.sort((a, b) => {
+    if (sortBy === 'date') return new Date(b.date) - new Date(a.date);
+    if (sortBy === 'amount') return b.amount - a.amount;
+    if (sortBy === 'type') return a.type.localeCompare(b.type);
+    return 0;
+  });
+
+  filtered.forEach((tran, i) => {
+    resultsFound = true;
+    const li = document.createElement('li');
+    li.className = tran.type;
+    li.innerHTML = `
+      ${tran.date} | ${tran.description} - ${selectedCurrency}${parseFloat(tran.amount).toFixed(2)} (${tran.category}) 
+      <button onclick="editTransaction(${i})">${t.edit}</button>
+      <button onclick="deleteTransaction(${i})">${t.delete}</button>
+    `;
+    transactionList.appendChild(li);
+    if (tran.type === 'income') income += parseFloat(tran.amount);
+    else expenses += parseFloat(tran.amount);
+  });
+
+  if (!resultsFound) {
+    const li = document.createElement('li');
+    li.style.textAlign = 'center';
+    li.style.color = '#777';
+    li.innerText = t.noResults;
+    transactionList.appendChild(li);
+  }
+
+  balanceEl.innerText = `${selectedCurrency}${(income - expenses).toFixed(2)}`;
+  incomeEl.innerText = `${selectedCurrency}${income.toFixed(2)}`;
+  expensesEl.innerText = `${selectedCurrency}${expenses.toFixed(2)}`;
+  localStorage.setItem('transactions', JSON.stringify(transactions));
+  updateChart();
+}
+
+// ✅ Event Listeners
+addBtn.addEventListener('click', addTransaction);
+exportBtn.addEventListener('click', exportPDF);
+exportCSVBtn.addEventListener('click', exportCSV);
+sortSelect.addEventListener('change', updateUI);
+
+// ✅ Modal Controls
+function openPrivacyModal() { document.getElementById('privacyModal').style.display = 'block'; }
+function closePrivacyModal() { document.getElementById('privacyModal').style.display = 'none'; }
+function openHowToUseModal() { document.getElementById('howToUseModal').style.display = 'block'; }
+function closeHowToUseModal() { document.getElementById('howToUseModal').style.display = 'none'; }
+
+window.onclick = function(event) {
+  const privacyModal = document.getElementById('privacyModal');
+  const howToUseModal = document.getElementById('howToUseModal');
+  if (event.target === privacyModal) privacyModal.style.display = 'none';
+  if (event.target === howToUseModal) howToUseModal.style.display = 'none';
+};
+
+updateLanguage(selectedLanguage);
+updateUI();
+
+
+
+  </script>
+<script>
+// ✅ Register service worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js')
+      .then(reg => console.log('✅ Service Worker registered:', reg))
+      .catch(err => console.warn('❌ Service Worker failed:', err));
+  });
+}
+
+// ✅ Handle install prompt
+let deferredPrompt;
+const installBtn = document.getElementById('installBtn');
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  installBtn.style.display = 'block';
+});
+
+installBtn.addEventListener('click', async () => {
+  installBtn.style.display = 'none';
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const choice = await deferredPrompt.userChoice;
+  console.log('User choice:', choice.outcome);
+  deferredPrompt = null;
+});
+</script>
+
+
+</body>
+</html>

@@ -2,7 +2,7 @@
   "name": "Finance Tracker",
   "short_name": "FinanceTracker",
   "description": "Track your income, expenses, and balance offline.",
-  "start_url": "/index.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#4CAF50",
   "theme_color": "#4CAF50",
